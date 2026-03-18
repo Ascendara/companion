@@ -623,6 +623,9 @@ function RealDashboard() {
           saveCacheToLocalStorage()
         }
         
+        setDownloads(prev => prev.filter(d => d.id !== id))
+        previousDownloadsRef.current.delete(id)
+
         toast({
           title: 'Kill Command Sent',
           description: 'Download will be removed shortly',
@@ -679,12 +682,21 @@ function RealDashboard() {
     router.push('/')
   }
 
-  const activeDownloads = downloads.filter(d => 
+  // Filter ghost downloads
+  const validDownloads = downloads.filter(d => {
+    const isGhost = d.progress === 0 && 
+                   (d.downloaded === '0 B' || d.downloaded === '0') && 
+                   ['paused', 'stopped', 'error'].includes(d.status);
+    
+    return !isGhost; // Kepp only real downloads
+  });
+
+  const activeDownloads = validDownloads.filter(d => 
     d.status === 'downloading' || d.status === 'queued' || d.status === 'extracting'
   )
-  const pausedDownloads = downloads.filter(d => d.status === 'paused' || d.status === 'stopped')
-  const completedDownloads = downloads.filter(d => d.status === 'completed')
-  const errorDownloads = downloads.filter(d => d.status === 'error')
+  const pausedDownloads = validDownloads.filter(d => d.status === 'paused' || d.status === 'stopped')
+  const completedDownloads = validDownloads.filter(d => d.status === 'completed')
+  const errorDownloads = validDownloads.filter(d => d.status === 'error')
 
   return (
     <>
