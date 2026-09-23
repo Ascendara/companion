@@ -55,11 +55,9 @@ class ApiClient {
   }
 
   getSessionId(): string | null {
-    console.log('[API] Getting session ID from memory:', this.sessionId)
     if (this.sessionId) return this.sessionId;
     if (typeof window !== 'undefined') {
       this.sessionId = localStorage.getItem('ascendara_session_id');
-      console.log('[API] Session ID retrieved from localStorage:', this.sessionId)
     } else {
       console.warn('[API] Window not available, cannot read from localStorage')
     }
@@ -125,6 +123,7 @@ class ApiClient {
         });
       }
 
+      this.getSessionId();
       if (this.sessionId) {
         console.log('[API] Adding session ID to headers:', this.sessionId)
         headers['X-Session-ID'] = this.sessionId;
