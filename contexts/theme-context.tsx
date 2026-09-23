@@ -60,6 +60,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     const isDark = currentTheme.group === 'dark'
     const htmlElement = document.documentElement
+    htmlElement.dataset.theme = currentTheme.id
     
     if (isDark) {
       htmlElement.classList.add('dark')
