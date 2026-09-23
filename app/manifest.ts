@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Ascendara Monitor',
+    name: 'Ascendara',
     short_name: 'Ascendara',
-    description: 'Remote monitoring and control companion for Ascendara downloads',
+    description: 'Discover games, explore your library, and follow your desktop activity.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

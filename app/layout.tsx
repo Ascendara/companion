@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ascendara Monitor",
-  description: "Remote monitoring and control companion for Ascendara downloads",
+  title: "Ascendara Webview",
+  description: "Discover games, explore your cloud library, and stay connected to your Ascendara desktop.",
 };
 
 export default function RootLayout({

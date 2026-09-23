@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { CodeInput } from '@/components/code-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -94,9 +95,9 @@ export default function Home() {
     }
 
     const existingSession = apiClient.getSessionId()
-    if (existingSession) {
+    if (existingSession && !new URLSearchParams(window.location.search).has('reconnect')) {
       console.log('[Connection] Existing session found, redirecting to dashboard')
-      router.push('/dashboard')
+          router.push('/library')
       return
     }
 
@@ -160,8 +161,10 @@ export default function Home() {
           description: `Connected to ${response.data.displayName}`,
         })
         
-        console.log('[Connection] Redirecting to dashboard...')
-        router.push('/dashboard')
+        console.log('[Connection] Redirecting to discovery...')
+        localStorage.removeItem('mock_mode')
+        sessionStorage.removeItem('session_error')
+        router.push('/library')
       } else {
         console.error('[Connection] Verification failed:', response.error)
         setError(true)
@@ -268,15 +271,16 @@ export default function Home() {
           <CardHeader className="text-center space-y-4">
             <div>
               <CardTitle className={cn("text-2xl font-bold", themeColors.text)}>
-                Connect to Ascend
+                Ascendara Companion
               </CardTitle>
               <CardDescription className="mt-2">
-                Enter the 6-digit code displayed in Ascendara
+                Discover games, explore your library, and keep up with your desktop.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
+              <p className="text-center text-sm">Enter the 6-digit code displayed in Ascendara</p>
               <CodeInput
                 length={6}
                 onComplete={handleCodeComplete}
@@ -298,7 +302,7 @@ export default function Home() {
             )}
             <div className={cn("text-center text-sm opacity-70", themeColors.text)}>
               <p>Open Ascendara on your desktop and navigate to</p>
-              <p className="font-semibold mt-1">Ascend → Settings → Remote Access</p>
+              <p className="font-semibold mt-1">Ascend → Companion</p>
             </div>
           </CardContent>
         </Card>
