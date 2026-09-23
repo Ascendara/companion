@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { DownloadCard } from '@/components/download-card'
 import { DownloadSkeleton } from '@/components/download-skeleton'
 import { Button } from '@/components/ui/button'
-import { ThemeSelectorModal } from '@/components/theme-selector-modal'
-import { ThemeButton } from '@/components/theme-button'
 import { InstallPrompt } from '@/components/install-prompt'
 import { BottomNavbar } from '@/components/bottom-navbar'
 import { ConnectionGuard } from '@/components/connection-guard'
@@ -14,7 +12,7 @@ import { apiClient, Download } from '@/lib/api'
 import { connectionState } from '@/lib/connection-state'
 import { useToast } from '@/hooks/use-toast'
 import { useTheme } from '@/contexts/theme-context'
-import { RefreshCw, LogOut, Download as DownloadIcon, Inbox, AlertTriangle, Users, Circle, Coffee } from 'lucide-react'
+import { RefreshCw, Download as DownloadIcon, Inbox, AlertTriangle, Users, Circle, Coffee } from 'lucide-react'
 import { config } from '@/lib/config'
 import { cn } from '@/lib/utils'
 import {
@@ -76,7 +74,6 @@ function RealDashboard() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null)
-  const [showThemeSelector, setShowThemeSelector] = React.useState(false)
   const [showSessionExpiredDialog, setShowSessionExpiredDialog] = React.useState(false)
   const [loadingDownloads, setLoadingDownloads] = React.useState<Set<string>>(new Set())
   const [userName, setUserName] = React.useState<string>('')
@@ -650,35 +647,6 @@ function RealDashboard() {
     }
   }
 
-  const handleDisconnect = async () => {
-    console.log('[Dashboard] Disconnect button clicked')
-    
-    try {
-      const response = await apiClient.disconnect()
-      
-      if (response.success) {
-        toast({
-          title: 'Disconnected',
-          description: 'Device has been removed from your account',
-        })
-      } else {
-        console.warn('[Dashboard] Disconnect failed:', response.error)
-        toast({
-          title: 'Disconnected Locally',
-          description: 'Session cleared from this device',
-        })
-      }
-    } catch (error) {
-      console.error('[Dashboard] Disconnect error:', error)
-      toast({
-        title: 'Disconnected Locally',
-        description: 'Session cleared from this device',
-      })
-    }
-    
-    router.push('/')
-  }
-
   const activeDownloads = downloads.filter(d => 
     d.status === 'downloading' || d.status === 'queued' || d.status === 'extracting'
   )
@@ -688,14 +656,15 @@ function RealDashboard() {
 
   return (
     <>
-      <div className={cn("min-h-screen bg-gradient-to-br pb-16", themeColors.bg)}>
+      <div className={cn("companion-legacy min-h-screen pb-16", themeColors.bg)}>
         <div className={cn("sticky top-0 z-10 backdrop-blur-lg border-b", themeColors.card, themeColors.border)}>
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div>
+                  <p className="eyebrow">DOWNLOADS</p>
                   <h1 className={cn("text-xl font-bold", themeColors.text)}>
-                    {userName ? `Hey, ${userName}!` : 'Downloads'}
+                    {userName ? `${userName}’s desktop activity` : 'Your desktop activity.'}
                   </h1>
                   {lastUpdated && (
                     <p className={cn("text-xs opacity-70", themeColors.text)}>
@@ -705,23 +674,14 @@ function RealDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ThemeButton onClick={() => setShowThemeSelector(true)} />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={refreshDownloads}
+                  aria-label="Refresh downloads"
                   disabled={isRefreshing}
                 >
                   <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(themeColors.text)}
-                  size="sm"
-                  onClick={handleDisconnect}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Disconnect
                 </Button>
               </div>
             </div>
@@ -729,6 +689,12 @@ function RealDashboard() {
         </div>
 
       <div className="container mx-auto px-4 py-6 space-y-8">
+        <p className="page-intro">Stay on top of downloads and extractions, wherever you are.</p>
+        {!isLoading && <div className="stat-grid">
+          <div><DownloadIcon /><span>Downloading & queued</span><strong>{activeDownloads.filter(d => d.status !== 'extracting').length}</strong></div>
+          <div><RefreshCw /><span>Extracting</span><strong>{activeDownloads.filter(d => d.status === 'extracting').length}</strong></div>
+          <div><Inbox /><span>Completed</span><strong>{completedDownloads.length}</strong></div>
+        </div>}
         {isLoading ? (
           <div className="space-y-4">
             <DownloadSkeleton />
@@ -740,7 +706,7 @@ function RealDashboard() {
             <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-4", themeColors.secondary)}>
               <Coffee className={cn("h-10 w-10 opacity-50", themeColors.text)} />
             </div>
-            <h2 className={cn("text-2xl font-semibold mb-2", themeColors.text)}>Hm... Relaxing...</h2>
+            <h2 className={cn("text-2xl font-semibold mb-2", themeColors.text)}>Your desktop is all caught up.</h2>
             <p className={cn("max-w-md opacity-70", themeColors.text)}>
               Start a download in Ascendara to monitor it here
             </p>
@@ -903,11 +869,6 @@ function RealDashboard() {
         )}
       </div>
     </div>
-    
-    <ThemeSelectorModal 
-      isOpen={showThemeSelector} 
-      onClose={() => setShowThemeSelector(false)} 
-    />
 
     <AlertDialog 
       open={showSessionExpiredDialog}

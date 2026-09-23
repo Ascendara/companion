@@ -5,20 +5,15 @@ import { useRouter } from 'next/navigation'
 import { DownloadCard } from '@/components/download-card'
 import { DownloadSkeleton } from '@/components/download-skeleton'
 import { Button } from '@/components/ui/button'
-import { ThemeSelectorModal } from '@/components/theme-selector-modal'
-import { ThemeButton } from '@/components/theme-button'
 import { BottomNavbar } from '@/components/bottom-navbar'
-import { useToast } from '@/hooks/use-toast'
 import { useTheme } from '@/contexts/theme-context'
-import { RefreshCw, LogOut, Coffee, Code, Users, Circle } from 'lucide-react'
+import { RefreshCw, Coffee, Code, Users, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMockDashboard } from '@/hooks/use-mock-dashboard'
 
 export function MockDashboard() {
   const router = useRouter()
-  const { toast } = useToast()
   const { themeColors } = useTheme()
-  const [showThemeSelector, setShowThemeSelector] = React.useState(false)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [lastUpdated, setLastUpdated] = React.useState<Date | null>(null)
 
@@ -49,15 +44,6 @@ export function MockDashboard() {
     setLastUpdated(new Date())
   }
 
-  const handleDisconnect = () => {
-    localStorage.removeItem('mock_mode')
-    toast({
-      title: 'Disconnected',
-      description: 'Exited dev mock mode',
-    })
-    router.push('/')
-  }
-
   const activeDownloads = downloads.filter(d => 
     d.status === 'downloading' || d.status === 'queued' || d.status === 'extracting'
   )
@@ -67,7 +53,7 @@ export function MockDashboard() {
 
   return (
     <>
-      <div className={cn("min-h-screen bg-gradient-to-br pb-16", themeColors.bg)}>
+      <div className={cn("companion-legacy min-h-screen pb-16", themeColors.bg)}>
         <div className={cn("sticky top-0 z-10 backdrop-blur-lg border-b", themeColors.card, themeColors.border)}>
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
@@ -90,7 +76,6 @@ export function MockDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ThemeButton onClick={() => setShowThemeSelector(true)} />
                 <Button
                   variant="outline"
                   size="sm"
@@ -98,15 +83,6 @@ export function MockDashboard() {
                   disabled={isRefreshing}
                 >
                   <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(themeColors.text)}
-                  size="sm"
-                  onClick={handleDisconnect}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Disconnect
                 </Button>
               </div>
             </div>
@@ -291,10 +267,6 @@ export function MockDashboard() {
       </div>
 
       <BottomNavbar />
-      <ThemeSelectorModal 
-        isOpen={showThemeSelector} 
-        onClose={() => setShowThemeSelector(false)} 
-      />
     </>
   )
 }
