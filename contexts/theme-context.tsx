@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { themes, getThemeColors, type Theme, type ThemeColors } from '@/lib/themes'
+import { themes, getThemeColors, themeBackgroundColors, type Theme, type ThemeColors } from '@/lib/themes'
 
 interface ThemeContextType {
   theme: Theme
@@ -69,6 +69,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     
     htmlElement.style.colorScheme = isDark ? 'dark' : 'light'
+
+    // Keep the mobile browser chrome (e.g. Safari's top bar) in sync with the
+    // active theme instead of defaulting to black.
+    const bgColor = themeBackgroundColors[currentTheme.id] ?? themeBackgroundColors.light
+    let meta = document.querySelector('meta[name="theme-color"]')
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.setAttribute('name', 'theme-color')
+      document.head.appendChild(meta)
+    }
+    meta.setAttribute('content', bgColor)
   }, [currentTheme, mounted])
 
   const setTheme = React.useCallback((themeId: string) => {

@@ -33,6 +33,23 @@ export const themes: Theme[] = [
   { id: "ocean", name: "Deep Ocean", group: "dark" },
 ];
 
+// Actual --background hex values from app/globals.css, used to keep the
+// mobile browser chrome (e.g. Safari's top bar) in sync with the active theme.
+export const themeBackgroundColors: Record<string, string> = {
+  light: "#fafafa",
+  blue: "#eff6ff",
+  purple: "#faf5ff",
+  emerald: "#ecfdf5",
+  rose: "#fff1f2",
+  amber: "#fffbeb",
+  dark: "#0f172a",
+  midnight: "#020617",
+  cyberpunk: "#111827",
+  sunset: "#1e293b",
+  forest: "#141e1b",
+  ocean: "#0f172a",
+};
+
 export const getThemeColors = (themeId: string): ThemeColors => {
   const themeMap: Record<string, ThemeColors> = {
     light: {
