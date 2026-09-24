@@ -147,7 +147,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .companion-nav nav { display: flex; justify-content: space-around; gap: 2px; }
   .companion-nav nav a { flex: 1; flex-direction: column; gap: 5px; padding: 8px 2px; font-size: 10px; }
   .companion-brand, .nav-caption, .nav-foot { display: none; }
-  .companion-main { padding: 28px 20px 35px; }
+  .companion-main { padding: calc(28px + env(safe-area-inset-top)) 20px 35px; }
   .discover-hero { height: 310px; }
   .hero-copy { left: 25px; bottom: 28px; }
   .detail-columns { grid-template-columns: 1fr; gap: 10px; }
@@ -286,7 +286,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   * {
     @apply border-border outline-ring/50;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground;
   }
 }
