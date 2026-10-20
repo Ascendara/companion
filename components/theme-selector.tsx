@@ -3,116 +3,46 @@
 import * as React from 'react'
 import { useTheme } from '@/contexts/theme-context'
 import { themes, getThemePreview } from '@/lib/themes'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Palette, Check } from 'lucide-react'
+import { Palette, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+export function ThemeSwatches({ onSelect }: { onSelect?: (themeId: string) => void }) {
+  const { theme: currentTheme, setTheme } = useTheme()
+
+  return <>
+    {(['light', 'dark'] as const).map(group => <div key={group} className="theme-group">
+      <h3>{group === 'light' ? 'Light themes' : 'Dark themes'}</h3>
+      <div className="theme-grid">
+        {themes.filter(t => t.group === group).map(theme => {
+          const active = currentTheme.id === theme.id
+          return <button key={theme.id} type="button" className="theme-swatch" aria-pressed={active}
+            onClick={() => { setTheme(theme.id); onSelect?.(theme.id) }}>
+            <div className={cn(getThemePreview(theme.id))} />
+            <span>{theme.name}</span>
+            {active && <span className="theme-check"><Check size={13} strokeWidth={3} /></span>}
+          </button>
+        })}
+      </div>
+    </div>)}
+  </>
+}
 
 interface ThemeSelectorProps {
   onClose?: () => void
 }
 
 export function ThemeSelector({ onClose }: ThemeSelectorProps) {
-  const { theme: currentTheme, setTheme, themeColors } = useTheme()
-
-  const lightThemes = themes.filter(t => t.group === 'light')
-  const darkThemes = themes.filter(t => t.group === 'dark')
-
-  const handleThemeSelect = (themeId: string) => {
-    setTheme(themeId)
-    if (onClose) {
-      setTimeout(onClose, 300)
-    }
-  }
-
   return (
-    <Card className="w-full max-w-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Palette className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <CardTitle className="text-lg">Choose Your Theme</CardTitle>
-            <CardDescription className="text-xs">Personalize your experience</CardDescription>
-          </div>
+    <div className="modal-card" role="dialog" aria-modal="true" aria-label="Choose your theme">
+      <header>
+        <div className="stat-icon"><Palette size={19} /></div>
+        <div>
+          <h2>Choose your theme</h2>
+          <p>Saved automatically on this device</p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <h3 className={cn("text-xs font-semibold uppercase tracking-wide opacity-70", themeColors.text)}>
-            Light Themes
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {lightThemes.map((theme) => (
-              <button
-                key={theme.id}
-                onClick={() => handleThemeSelect(theme.id)}
-                className={cn(
-                  "relative group rounded-md overflow-hidden transition-all",
-                  "border-2 hover:scale-105 active:scale-95",
-                  currentTheme.id === theme.id
-                    ? "border-primary shadow-lg"
-                    : "border-transparent hover:border-muted-foreground/20"
-                )}
-              >
-                <div className={cn("h-14 w-full", getThemePreview(theme.id))} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-1.5">
-                  <p className="text-[10px] font-semibold text-white text-center leading-tight">
-                    {theme.name}
-                  </p>
-                </div>
-                {currentTheme.id === theme.id && (
-                  <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                    <Check className="h-3 w-3 text-primary-foreground" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <h3 className={cn("text-xs font-semibold uppercase tracking-wide opacity-70", themeColors.text)}>
-            Dark Themes
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {darkThemes.map((theme) => (
-              <button
-                key={theme.id}
-                onClick={() => handleThemeSelect(theme.id)}
-                className={cn(
-                  "relative group rounded-md overflow-hidden transition-all",
-                  "border-2 hover:scale-105 active:scale-95",
-                  currentTheme.id === theme.id
-                    ? "border-primary shadow-lg"
-                    : "border-transparent hover:border-muted-foreground/20"
-                )}
-              >
-                <div className={cn("h-14 w-full", getThemePreview(theme.id))} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-1.5">
-                  <p className="text-[10px] font-semibold text-white text-center leading-tight">
-                    {theme.name}
-                  </p>
-                </div>
-                {currentTheme.id === theme.id && (
-                  <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                    <Check className="h-3 w-3 text-primary-foreground" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="pt-2 border-t">
-          <p className={cn("text-[10px] text-center opacity-70", themeColors.text)}>
-            Your theme preference is saved automatically
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+        {onClose && <button type="button" className="icon-btn ghost" aria-label="Close" onClick={onClose}><X size={18} /></button>}
+      </header>
+      <ThemeSwatches onSelect={() => { if (onClose) setTimeout(onClose, 300) }} />
+    </div>
   )
 }

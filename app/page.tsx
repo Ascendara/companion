@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import Image from 'next/image'
 import { CodeInput } from '@/components/code-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -267,8 +267,9 @@ export default function Home() {
           </div>
         )}
         
-        <Card className={cn("w-full max-w-md shadow-lg border", themeColors.card)}>
-          <CardHeader className="text-center space-y-4">
+        <Card className={cn("w-full max-w-md shadow-xl border rounded-3xl", themeColors.card)}>
+          <CardHeader className="text-center space-y-4 pt-8">
+            <Image src="/icon.png" width={60} height={60} alt="" priority className="mx-auto rounded-2xl shadow-md" />
             <div>
               <CardTitle className={cn("text-2xl font-bold", themeColors.text)}>
                 Ascendara Companion
@@ -300,8 +301,8 @@ export default function Home() {
                 <span>Connecting...</span>
               </div>
             )}
-            <div className={cn("text-center text-sm opacity-70", themeColors.text)}>
-              <p>Open Ascendara on your desktop and navigate to</p>
+            <div className={cn("rounded-2xl bg-muted/70 px-4 py-3 text-center text-sm", themeColors.text)}>
+              <p className="opacity-70">Open Ascendara on your desktop and navigate to</p>
               <p className="font-semibold mt-1">Ascend → Companion</p>
             </div>
           </CardContent>

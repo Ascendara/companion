@@ -2,19 +2,14 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { DownloadCard } from '@/components/download-card'
-import { DownloadSkeleton } from '@/components/download-skeleton'
-import { Button } from '@/components/ui/button'
+import { DownloadsView } from '@/components/downloads-view'
 import { InstallPrompt } from '@/components/install-prompt'
-import { BottomNavbar } from '@/components/bottom-navbar'
 import { ConnectionGuard } from '@/components/connection-guard'
 import { apiClient, Download } from '@/lib/api'
 import { connectionState } from '@/lib/connection-state'
 import { useToast } from '@/hooks/use-toast'
-import { useTheme } from '@/contexts/theme-context'
-import { RefreshCw, Download as DownloadIcon, Inbox, AlertTriangle, Users, Circle, Coffee } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { config } from '@/lib/config'
-import { cn } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +64,6 @@ export default function Dashboard() {
 function RealDashboard() {
   const router = useRouter()
   const { toast } = useToast()
-  const { themeColors } = useTheme()
   const [downloads, setDownloads] = React.useState<Download[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
@@ -647,270 +641,55 @@ function RealDashboard() {
     }
   }
 
-  const activeDownloads = downloads.filter(d => 
-    ['downloading', 'queued', 'extracting', 'verifying', 'updating', 'actionRequired'].includes(d.status)
-  )
-  const pausedDownloads = downloads.filter(d => d.status === 'paused' || d.status === 'stopped')
-  const completedDownloads = downloads.filter(d => d.status === 'completed')
-  const errorDownloads = downloads.filter(d => d.status === 'error')
-
   return (
     <>
-      <div className={cn("companion-legacy min-h-screen pb-16", themeColors.bg)}>
-        <div className={cn("sticky top-0 z-10 backdrop-blur-lg border-b", themeColors.card, themeColors.border)}>
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="eyebrow">DOWNLOADS</p>
-                  <h1 className={cn("text-xl font-bold", themeColors.text)}>
-                    {userName ? `${userName}’s desktop activity` : 'Your desktop activity.'}
-                  </h1>
-                  {lastUpdated && (
-                    <p className={cn("text-xs opacity-70", themeColors.text)}>
-                      Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  )}
-                </div>
+      <DownloadsView
+        userName={userName}
+        lastUpdated={lastUpdated}
+        isLoading={isLoading}
+        isRefreshing={isRefreshing}
+        onRefresh={refreshDownloads}
+        downloads={downloads}
+        friends={friends}
+        loadingDownloads={loadingDownloads}
+        onPause={handlePause}
+        onResume={handleResume}
+        onCancel={handleCancel}
+      />
+
+      <AlertDialog
+        open={showSessionExpiredDialog}
+        onOpenChange={setShowSessionExpiredDialog}
+      >
+        <AlertDialogContent className="max-w-[92vw] sm:max-w-md p-5 sm:p-6 gap-3 rounded-2xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-11 h-11 rounded-xl bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={refreshDownloads}
-                  aria-label="Refresh downloads"
-                  disabled={isRefreshing}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
+              <AlertDialogTitle className="text-lg">Session expired</AlertDialogTitle>
             </div>
-          </div>
-        </div>
+            <AlertDialogDescription className="text-sm">
+              Your session was revoked or expired. This can happen when you disconnect from another device, the session times out, or the connection code expires.
+              <span className="block mt-3 font-medium text-foreground">Please reconnect with a new code.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogAction
+              onClick={() => {
+                apiClient.clearSession()
+                setShowSessionExpiredDialog(false)
+                router.push('/')
+              }}
+              className="w-full sm:w-auto"
+            >
+              Reconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <div className="container mx-auto px-4 py-6 space-y-8">
-        <p className="page-intro">Stay on top of downloads and extractions, wherever you are.</p>
-        {!isLoading && <div className="stat-grid">
-          <div><DownloadIcon /><span>Downloading & queued</span><strong>{activeDownloads.filter(d => d.status !== 'extracting').length}</strong></div>
-          <div><RefreshCw /><span>Extracting</span><strong>{activeDownloads.filter(d => d.status === 'extracting').length}</strong></div>
-          <div><Inbox /><span>Completed</span><strong>{completedDownloads.length}</strong></div>
-        </div>}
-        {isLoading ? (
-          <div className="space-y-4">
-            <DownloadSkeleton />
-            <DownloadSkeleton />
-            <DownloadSkeleton />
-          </div>
-        ) : downloads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-4", themeColors.secondary)}>
-              <Coffee className={cn("h-10 w-10 opacity-50", themeColors.text)} />
-            </div>
-            <h2 className={cn("text-2xl font-semibold mb-2", themeColors.text)}>Your desktop is all caught up.</h2>
-            <p className={cn("max-w-md opacity-70", themeColors.text)}>
-              Start a download in Ascendara to monitor it here
-            </p>
-          </div>
-        ) : (
-          <>
-            {activeDownloads.length > 0 && (
-              <div className="space-y-4">
-                <h2 className={cn("text-lg font-semibold flex items-center gap-2", themeColors.text)}>
-                  <div className={cn("w-2 h-2 rounded-full animate-pulse", themeColors.primary)} />
-                  Active Downloads ({activeDownloads.length})
-                </h2>
-                <div className="space-y-4">
-                  {activeDownloads.map((download) => (
-                    <DownloadCard
-                      key={download.id}
-                      download={download}
-                      onPause={handlePause}
-                      onResume={handleResume}
-                      onCancel={handleCancel}
-                      disabled={loadingDownloads.has(download.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {pausedDownloads.length > 0 && (
-              <div className="space-y-4">
-                <h2 className={cn("text-lg font-semibold", themeColors.text)}>
-                  Paused Downloads ({pausedDownloads.length})
-                </h2>
-                <div className="space-y-4">
-                  {pausedDownloads.map((download) => (
-                    <DownloadCard
-                      key={download.id}
-                      download={download}
-                      onPause={handlePause}
-                      onResume={handleResume}
-                      onCancel={handleCancel}
-                      disabled={loadingDownloads.has(download.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {errorDownloads.length > 0 && (
-              <div className="space-y-4">
-                <h2 className={cn("text-lg font-semibold", themeColors.text)}>
-                  Failed Downloads ({errorDownloads.length})
-                </h2>
-                <div className="space-y-4">
-                  {errorDownloads.map((download) => (
-                    <DownloadCard
-                      key={download.id}
-                      download={download}
-                      onPause={handlePause}
-                      onResume={handleResume}
-                      onCancel={handleCancel}
-                      disabled={loadingDownloads.has(download.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {completedDownloads.length > 0 && (
-              <div className="space-y-4">
-                <h2 className={cn("text-lg font-semibold", themeColors.text)}>
-                  Completed ({completedDownloads.length})
-                </h2>
-                <div className="space-y-4">
-                  {completedDownloads.map((download) => (
-                    <DownloadCard
-                      key={download.id}
-                      download={download}
-                      onPause={handlePause}
-                      onResume={handleResume}
-                      onCancel={handleCancel}
-                      disabled={loadingDownloads.has(download.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {friends.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className={cn("text-lg font-semibold flex items-center gap-2", themeColors.text)}>
-                    <Users className="h-5 w-5" />
-                    Friends ({friends.filter(f => f.status.status !== 'offline').length} online)
-                  </h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push('/friends')}
-                    className={cn("text-xs", themeColors.text)}
-                  >
-                    View All
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {friends
-                    .filter(f => f.status.status !== 'offline')
-                    .slice(0, 6)
-                    .map((friend) => (
-                      <div
-                        key={friend.uid}
-                        className={cn(
-                          "rounded-lg p-3 transition-all duration-200 hover:scale-[1.02] border",
-                          themeColors.card,
-                          themeColors.border
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex-shrink-0">
-                            {friend.photoURL ? (
-                              <img 
-                                src={friend.photoURL} 
-                                alt={friend.displayName}
-                                className="h-10 w-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
-                                {friend.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                              </div>
-                            )}
-                            <div className="absolute -bottom-0.5 -right-0.5">
-                              <Circle
-                                className={cn(
-                                  'h-3 w-3 rounded-full border-2',
-                                  friend.status.status === 'online' && 'bg-green-500',
-                                  friend.status.status === 'away' && 'bg-yellow-500',
-                                  friend.status.status === 'busy' && 'bg-red-500'
-                                )}
-                                style={{ borderColor: themeColors.card.split(' ')[0].includes('bg-') ? '#ffffff' : themeColors.card }}
-                                fill="currentColor"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className={cn("font-medium text-sm truncate", themeColors.text)}>
-                              {friend.displayName}
-                            </h3>
-                            {friend.status.customMessage && (
-                              <p className={cn("text-xs opacity-70 truncate", themeColors.text)}>
-                                {friend.status.customMessage}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-
-    <AlertDialog 
-      open={showSessionExpiredDialog}
-      onOpenChange={setShowSessionExpiredDialog}
-    >
-      <AlertDialogContent className="max-w-[90vw] sm:max-w-md p-4 sm:p-6 gap-3">
-        <AlertDialogHeader>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-destructive" />
-            </div>
-            <AlertDialogTitle className="text-base sm:text-lg">Session Expired</AlertDialogTitle>
-          </div>
-          <AlertDialogDescription className="text-xs sm:text-sm">
-            Your session was revoked or expired.
-            <ul className="list-disc list-inside mt-2 space-y-0.5 text-xs sm:text-sm">
-              <li>Disconnected from another device</li>
-              <li>Session timed out</li>
-              <li>Connection code expired</li>
-            </ul>
-            <p className="mt-2 sm:mt-3 font-medium text-xs sm:text-sm">
-              Please reconnect with a new code.
-            </p>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className="mt-2">
-          <AlertDialogAction
-            onClick={() => {
-              apiClient.clearSession()
-              setShowSessionExpiredDialog(false)
-              router.push('/')
-            }}
-            className="w-full sm:w-auto text-sm"
-          >
-            Reconnect
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-
-    <InstallPrompt />
-    <BottomNavbar />
-  </>
+      <InstallPrompt />
+    </>
   )
 }

@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { ThemeSelector } from '@/components/theme-selector'
-import { X } from 'lucide-react'
 
 interface ThemeSelectorModalProps {
   isOpen: boolean
@@ -11,33 +10,22 @@ interface ThemeSelectorModalProps {
 
 export function ThemeSelectorModal({ isOpen, onClose }: ThemeSelectorModalProps) {
   React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
+    if (!isOpen) return
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = 'unset'
+      window.removeEventListener('keydown', onKey)
     }
-  }, [isOpen])
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative z-10 w-full max-w-2xl animate-in fade-in zoom-in-95 duration-200">
-        <button
-          onClick={onClose}
-          className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <ThemeSelector onClose={onClose} />
-      </div>
+    <div className="modal-layer">
+      <div className="modal-scrim" onClick={onClose} />
+      <ThemeSelector onClose={onClose} />
     </div>
   )
 }
