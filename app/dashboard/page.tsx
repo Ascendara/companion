@@ -271,7 +271,7 @@ function RealDashboard() {
               }
               
               // If API still has progress (shouldn't happen but handle it), cache it
-              if (download.progress > 0 && !pausedDownloadCache.current.has(download.id)) {
+              if (Number.isFinite(download.progress)) {
                 pausedDownloadCache.current.set(download.id, {
                   progress: download.progress,
                   downloaded: download.downloaded
@@ -320,11 +320,11 @@ function RealDashboard() {
           setDownloads(prev => {
             const apiDownloadIds = new Set(downloadsWithCache.map(d => d.id))
             const preservedPlaceholders = prev.filter(d => 
-              !apiDownloadIds.has(d.id) && d.status === 'queued' && d.eta === 'Calculating...'
+              !apiDownloadIds.has(d.id) && response.data!.newDownloadIds.includes(d.id) && d.status === 'queued' && d.eta === 'Calculating...'
             )
             return [...downloadsWithCache, ...preservedPlaceholders]
           })
-          setLastUpdated(new Date())
+          setLastUpdated(response.data.lastUpdated ? new Date(response.data.lastUpdated) : null)
         } else {
           if (response.error?.includes('Unauthorized') || response.error?.includes('session')) {
             // Session was revoked or expired - show alert dialog
@@ -391,7 +391,7 @@ function RealDashboard() {
   const refreshDownloads = React.useCallback(async () => {
     setIsRefreshing(true)
     try {
-      const response = await apiClient.getDownloads()
+      const response = await connectionState.fetchWithDedup('downloads', () => apiClient.getDownloads(), true)
       if (response.success && response.data) {
         let cacheUpdated = false
         
@@ -433,7 +433,7 @@ function RealDashboard() {
             }
             
             // If API still has progress (shouldn't happen but handle it), cache it
-            if (download.progress > 0 && !pausedDownloadCache.current.has(download.id)) {
+            if (Number.isFinite(download.progress)) {
               pausedDownloadCache.current.set(download.id, {
                 progress: download.progress,
                 downloaded: download.downloaded
@@ -476,7 +476,7 @@ function RealDashboard() {
         })
         
         setDownloads(downloadsWithCache)
-        setLastUpdated(new Date())
+        setLastUpdated(response.data.lastUpdated ? new Date(response.data.lastUpdated) : null)
       }
     } catch (error) {
       console.error('[Dashboard] Error refreshing downloads:', error)
@@ -648,7 +648,7 @@ function RealDashboard() {
   }
 
   const activeDownloads = downloads.filter(d => 
-    d.status === 'downloading' || d.status === 'queued' || d.status === 'extracting'
+    ['downloading', 'queued', 'extracting', 'verifying', 'updating', 'actionRequired'].includes(d.status)
   )
   const pausedDownloads = downloads.filter(d => d.status === 'paused' || d.status === 'stopped')
   const completedDownloads = downloads.filter(d => d.status === 'completed')

@@ -51,5 +51,6 @@ export function getStatusColor(status: string): string {
 
 export function getStatusText(status: string): string {
   if (status === 'stopped') return 'Paused';
+  if (status === 'actionRequired') return 'Action required';
   return status.charAt(0).toUpperCase() + status.slice(1);
 }

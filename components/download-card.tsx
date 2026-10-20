@@ -46,10 +46,14 @@ export function DownloadCard({ download, onPause, onResume, onCancel, disabled =
     setLoadingAction(null)
   }, [download.status])
 
+  const progress = Number.isFinite(download.progress) ? Math.min(100, Math.max(0, download.progress)) : 0
+
   const getStatusIcon = () => {
     switch (download.status) {
+      case 'updating':
       case 'downloading':
         return <Download className="h-4 w-4" />
+      case 'verifying':
       case 'extracting':
         return <Loader2 className="h-4 w-4 animate-spin" />
       case 'paused':
@@ -57,6 +61,7 @@ export function DownloadCard({ download, onPause, onResume, onCancel, disabled =
         return <Pause className="h-4 w-4" />
       case 'completed':
         return <Download className="h-4 w-4" />
+      case 'actionRequired':
       case 'error':
         return <AlertCircle className="h-4 w-4" />
       case 'queued':
@@ -83,9 +88,9 @@ export function DownloadCard({ download, onPause, onResume, onCancel, disabled =
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className={cn("opacity-70", themeColors.text)}>Progress</span>
-            <span className={cn("font-semibold", themeColors.text)}>{download.progress.toFixed(1)}%</span>
+            <span className={cn("font-semibold", themeColors.text)}>{progress.toFixed(1)}%</span>
           </div>
-          <Progress value={download.progress} className="h-2" />
+          <Progress value={progress} className="h-2" />
           <div className={cn("flex items-center justify-between text-xs opacity-70", themeColors.text)}>
             <span>{download.downloaded} / {download.size}</span>
           </div>
@@ -102,6 +107,13 @@ export function DownloadCard({ download, onPause, onResume, onCancel, disabled =
               <div className={cn("font-semibold", themeColors.text)}>{download.eta}</div>
             </div>
           </div>
+        )}
+
+        {download.status === 'actionRequired' && (
+          <div>Continue installation or recovery in the desktop app.</div>
+        )}
+        {download.status === 'extracting' && (
+          <div>{download.speed} · {download.eta !== '-' ? download.eta : 'Extracting files'}</div>
         )}
 
         {download.status === 'error' && download.error && (

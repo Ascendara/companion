@@ -22,7 +22,7 @@ export interface Download {
   progress: number;
   speed: string;
   eta: string;
-  status: 'queued' | 'downloading' | 'paused' | 'stopped' | 'completed' | 'error' | 'extracting';
+  status: 'queued' | 'downloading' | 'paused' | 'stopped' | 'completed' | 'error' | 'extracting' | 'verifying' | 'updating' | 'actionRequired';
   size: string;
   downloaded: string;
   error: string | null;
