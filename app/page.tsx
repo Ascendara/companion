@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { CodeInput } from '@/components/code-input'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeSelectorModal } from '@/components/theme-selector-modal'
 import { ThemeButton } from '@/components/theme-button'
@@ -89,30 +88,7 @@ export default function Home() {
     checkMonitorEndpoint()
   }, [])
 
-  React.useEffect(() => {
-    if (checkingMonitor || monitorOffline) {
-      return
-    }
-
-    const existingSession = apiClient.getSessionId()
-    if (existingSession && !new URLSearchParams(window.location.search).has('reconnect')) {
-      console.log('[Connection] Existing session found, redirecting to dashboard')
-          router.push('/library')
-      return
-    }
-
-    const searchParams = new URLSearchParams(window.location.search)
-    const codeParam = searchParams.get('code')
-    
-    if (codeParam && /^\d{6}$/.test(codeParam)) {
-      console.log('[Connection] 6-digit code found in URL:', codeParam)
-      setInitialCode(codeParam)
-      setAutoConnecting(true)
-      handleCodeComplete(codeParam)
-    }
-  }, [router, checkingMonitor, monitorOffline])
-
-  const handleCodeComplete = async (code: string) => {
+  const handleCodeComplete = React.useCallback(async (code: string) => {
     if (isProcessingCode.current) {
       console.log('[Connection] Already processing a code, ignoring duplicate call')
       return
@@ -190,7 +166,31 @@ export default function Home() {
       })
       setIsLoading(false)
     }
-  }
+  }, [router, toast])
+
+  React.useEffect(() => {
+    if (checkingMonitor || monitorOffline) {
+      return
+    }
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const codeParam = searchParams.get('code')
+    const hasValidCode = codeParam && /^\d{6}$/.test(codeParam)
+    const existingSession = apiClient.getSessionId()
+
+    if (existingSession && !searchParams.has('reconnect') && !hasValidCode) {
+      console.log('[Connection] Existing session found, redirecting to dashboard')
+      router.push('/library')
+      return
+    }
+
+    if (hasValidCode) {
+      console.log('[Connection] 6-digit code found in URL:', codeParam)
+      setInitialCode(codeParam)
+      setAutoConnecting(true)
+      handleCodeComplete(codeParam)
+    }
+  }, [router, checkingMonitor, monitorOffline, handleCodeComplete])
 
   if (checkingMonitor) {
     return (
