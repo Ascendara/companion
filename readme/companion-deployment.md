@@ -1,6 +1,7 @@
 # Ascendara companion deployment
 
-The webapp includes cloud library (`/library`) and profile (`/profile`) views.
+The webapp includes the live desktop library (`/library`), synced cloud
+collection (`/cloud-library`), and profile (`/profile`) views.
 Discover (`/explore`) searches the latest index, with game details at `/games/:id`.
 Downloads and friends remain at their existing URLs. Six-digit connection links
 continue to work.
@@ -47,23 +48,45 @@ labeled as stale. No local catalog file or new environment variables are needed.
 
 Game IDs are preserved when present, with stable title-based IDs for older
 entries that only have `imgID`. Images are resolved by game name using the
-existing `/companion/artwork` flow, in small batches for the current page.
-Both Discover and Library show six games at a time and resolve two covers per
-request. Cached covers are reused; queued lookups for previous pages are skipped.
-The monitor allows one artwork batch at a time, returns a retryable 503 for
-contention, and bounds upstream lookups to a 12-second batch budget. Browser
-backoff replaces retries that used to hold Waitress workers. Larger legacy
-batches return unfinished names in `pending` for a later request.
+existing `/companion/artwork` flow, in pairs of titles. Discover and the
+desktop Library request covers as cards approach the viewport; the cloud
+collection resolves covers for its current page. Cached covers are reused.
+The monitor bounds each artwork batch to 12 seconds and returns unfinished
+titles in `pending`. Temporary proxy failures are retried by the browser,
+while confirmed missing covers are cached as misses.
 No deprecated image routes are used. Catalog responses expose metadata and
 requirements, not download links. Game installation continues on desktop.
 
+Discover resolves artwork only for tiles in or near the viewport (300px ahead),
+so large pages do not queue every offscreen cover. The first two covers load
+eagerly. Fresh cached catalog pages render immediately on return, and their
+complete game entries seed the detail cache to avoid another metadata request
+when opening a result. Search callbacks stay stable as artwork arrives, so image
+updates do not restart the search debounce.
+
+## Desktop library and remote launch
+
+Deploy `mobileview-api.py` to the monitor server and the updated
+`src/app.jsx` and `src/services/desktopLibrarySyncService.js` to Ascendara.
+The desktop app sends its installed library to `POST /library/sync` every 15
+seconds using the signed-in user's Firebase ID token. The monitor stores only
+display metadata and opaque game IDs, not executable paths. The browser reads
+`GET /companion/library` using its connected-device session and shows offline
+status when the last desktop update is over 45 seconds old.
+
+Play sends `POST /companion/library/launch`. The monitor accepts only IDs in a
+recent desktop snapshot. Ascendara polls its user-scoped command queue from
+the global app shell, claims each command once, resolves its ID against the
+current local game list, launches through Electron's `playGame` API, and
+acknowledges success or failure. Pending commands expire after 90 seconds.
+
 ## Account data
 
-Library data comes from `users/{uid}.cloudLibrary`, matching desktop's cloud
+Cloud collection data comes from `users/{uid}.cloudLibrary`, matching desktop's cloud
 sync implementation; playtime is stored in seconds. Profile levels come from
 the backend-managed `users/{uid}.profileStats`. Empty libraries prompt users
-to sync on desktop. Installing or launching games still happens in desktop;
-the webapp retains existing remote pause, resume, and cancel controls.
+to sync on desktop. Game installation remains in desktop. The webapp retains
+existing remote pause, resume, and cancel controls.
 
 ## Verification
 

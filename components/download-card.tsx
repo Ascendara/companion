@@ -1,17 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Pause, Play, X, Download, AlertCircle, Clock, Trash2, Loader2 } from 'lucide-react'
+import { Pause, Play, Download, AlertCircle, Clock, Trash2, Loader2, CheckCircle2, PackageOpen, Gauge, Timer } from 'lucide-react'
 import { Download as DownloadType } from '@/lib/api'
-import { formatBytes, formatSpeed, formatETA, getStatusColor, getStatusText } from '@/lib/format'
-import { useTheme } from '@/contexts/theme-context'
-import { cn } from '@/lib/utils'
+import { getStatusText } from '@/lib/format'
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -27,159 +22,123 @@ interface DownloadCardProps {
   disabled?: boolean
 }
 
+const STATUS_ICONS: Record<DownloadType['status'], React.ElementType> = {
+  downloading: Download,
+  extracting: PackageOpen,
+  verifying: Loader2,
+  updating: Download,
+  actionRequired: AlertCircle,
+  paused: Pause,
+  stopped: Pause,
+  completed: CheckCircle2,
+  error: AlertCircle,
+  queued: Clock,
+}
+
 export function DownloadCard({ download, onPause, onResume, onCancel, disabled = false }: DownloadCardProps) {
-  const { themeColors } = useTheme()
   const [showKillDialog, setShowKillDialog] = React.useState(false)
   const [loadingAction, setLoadingAction] = React.useState<'pause' | 'resume' | 'kill' | null>(null)
-
-  React.useEffect(() => {
-    if (download.status === 'paused' || download.status === 'stopped') {
-      console.log(`[DownloadCard] Rendering paused download ${download.id}:`, {
-        progress: download.progress,
-        downloaded: download.downloaded,
-        size: download.size
-      })
-    }
-  }, [download])
 
   React.useEffect(() => {
     setLoadingAction(null)
   }, [download.status])
 
-  const getStatusIcon = () => {
-    switch (download.status) {
-      case 'downloading':
-        return <Download className="h-4 w-4" />
-      case 'extracting':
-        return <Loader2 className="h-4 w-4 animate-spin" />
-      case 'paused':
-      case 'stopped':
-        return <Pause className="h-4 w-4" />
-      case 'completed':
-        return <Download className="h-4 w-4" />
-      case 'error':
-        return <AlertCircle className="h-4 w-4" />
-      case 'queued':
-        return <Clock className="h-4 w-4" />
-      default:
-        return null
-    }
-  }
+  const StatusIcon = STATUS_ICONS[download.status] || Download
+  const paused = download.status === 'paused' || download.status === 'stopped'
+  const canKill = download.status === 'downloading' || paused || download.status === 'queued'
+  const busy = disabled || loadingAction !== null
+  const progress = Number.isFinite(download.progress) ? Math.min(100, Math.max(0, download.progress)) : 0
 
   return (
-    <Card className={cn("overflow-hidden transition-all border", themeColors.card, themeColors.cardHover, disabled && "opacity-60")}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className={cn("text-lg font-semibold line-clamp-2", themeColors.text)}>
-            {download.name}
-          </CardTitle>
-          <div className={cn('flex items-center gap-1 text-sm font-medium whitespace-nowrap', getStatusColor(download.status))}>
-            {getStatusIcon()}
-            <span>{getStatusText(download.status)}</span>
-          </div>
+    <article className={`dl-card status-${download.status}${disabled ? ' busy' : ''}`}>
+      <div className="dl-head">
+        <div className="dl-icon"><StatusIcon size={20} className={download.status === 'extracting' ? 'spin' : undefined} style={download.status === 'extracting' ? { animationDuration: '2.4s' } : undefined} /></div>
+        <div className="dl-title">
+          <h3>{download.name}</h3>
+          <p>{download.downloaded} / {download.size}</p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className={cn("opacity-70", themeColors.text)}>Progress</span>
-            <span className={cn("font-semibold", themeColors.text)}>{download.progress.toFixed(1)}%</span>
-          </div>
-          <Progress value={download.progress} className="h-2" />
-          <div className={cn("flex items-center justify-between text-xs opacity-70", themeColors.text)}>
-            <span>{download.downloaded} / {download.size}</span>
-          </div>
-        </div>
+        <span className="status-pill">{getStatusText(download.status)}</span>
+      </div>
 
-        {download.status === 'downloading' && (
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className={cn("opacity-70", themeColors.text)}>Speed</div>
-              <div className={cn("font-semibold", themeColors.text)}>{download.speed}</div>
+      {download.status !== 'completed' && (
+        <div className="dl-progress">
+          <div className="progress-track" role="progressbar" aria-label={`${download.name} progress`} aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${progress}%` }} /></div>
+          <strong>{progress.toFixed(1)}%</strong>
+        </div>
+      )}
+
+      {download.status === 'error' && download.error && (
+        <div className="callout danger"><AlertCircle size={16} /><div>{download.error}</div></div>
+      )}
+
+      {download.status === 'actionRequired' && (
+        <div className="callout"><AlertCircle size={16} /><div>Continue installation or recovery in the desktop app.</div></div>
+      )}
+      {download.status === 'extracting' && (
+        <div className="dl-meta"><span>{download.speed}</span><span>{download.eta !== '-' ? download.eta : 'Extracting files'}</span></div>
+      )}
+
+      {canKill && (
+        <div className="dl-foot">
+          {download.status === 'downloading' ? (
+            <div className="dl-meta">
+              <span><Gauge size={14} /><strong>{download.speed}</strong></span>
+              <span><Timer size={14} />ETA <strong>{download.eta}</strong></span>
             </div>
-            <div>
-              <div className={cn("opacity-70", themeColors.text)}>ETA</div>
-              <div className={cn("font-semibold", themeColors.text)}>{download.eta}</div>
-            </div>
+          ) : <div className="dl-meta">{paused ? <span>Paused at {download.progress.toFixed(1)}%</span> : download.status === 'queued' ? <span>Waiting in queue</span> : null}</div>}
+          <div className="dl-actions">
+            {download.status === 'downloading' && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setLoadingAction('pause')
+                  onPause(download.id)
+                }}
+                disabled={busy}
+              >
+                {loadingAction === 'pause' ? <Loader2 size={15} className="spin" /> : <Pause size={15} />}
+                Pause
+              </button>
+            )}
+            {paused && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  setLoadingAction('resume')
+                  onResume(download.id)
+                }}
+                disabled={busy}
+              >
+                {loadingAction === 'resume' ? <Loader2 size={15} className="spin" /> : <Play size={15} />}
+                Resume
+              </button>
+            )}
+            {canKill && (
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={() => setShowKillDialog(true)}
+                disabled={busy}
+              >
+                {loadingAction === 'kill' ? <Loader2 size={15} className="spin" /> : <Trash2 size={15} />}
+                Kill
+              </button>
+            )}
           </div>
-        )}
-
-        {download.status === 'error' && download.error && (
-          <div className="rounded-md bg-red-50 dark:bg-red-950/20 p-3 text-sm text-red-800 dark:text-red-200">
-            {download.error}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          {download.status === 'downloading' && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => {
-                setLoadingAction('pause')
-                onPause(download.id)
-              }}
-              disabled={disabled || loadingAction !== null}
-            >
-              {loadingAction === 'pause' ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Pause className="h-4 w-4 mr-2" />
-              )}
-              Pause
-            </Button>
-          )}
-          {(download.status === 'paused' || download.status === 'stopped') && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => {
-                setLoadingAction('resume')
-                onResume(download.id)
-              }}
-              disabled={disabled || loadingAction !== null}
-            >
-              {loadingAction === 'resume' ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4 mr-2" />
-              )}
-              Resume
-            </Button>
-          )}
-          {(download.status === 'downloading' || download.status === 'paused' || download.status === 'stopped' || download.status === 'queued') && (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex-1"
-              onClick={() => setShowKillDialog(true)}
-              disabled={disabled || loadingAction !== null}
-            >
-              {loadingAction === 'kill' ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
-              )}
-              Kill
-            </Button>
-          )}
         </div>
-      </CardContent>
+      )}
 
       <AlertDialog open={showKillDialog} onOpenChange={setShowKillDialog}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+        <AlertDialogContent className="max-w-[92vw] sm:max-w-md rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Trash2 className="h-5 w-5 text-destructive" />
-              Kill Download?
+              Kill download?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to kill <strong>{download.name}</strong>?
-              <br />
-              <br />
-              This will permanently stop and delete the download. This action cannot be undone.
+              This permanently stops and deletes <strong>{download.name}</strong>. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -199,11 +158,11 @@ export function DownloadCard({ download, onPause, onResume, onCancel, disabled =
               }}
               className="w-full sm:w-auto"
             >
-              Kill Download
+              Kill download
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </article>
   )
 }

@@ -44,7 +44,8 @@ class ConnectionStateManager {
     const now = Date.now()
     const lastFetch = this.data.lastFetch[key]
     
-    if (!forceRefresh && now - lastFetch < this.CACHE_DURATION) {
+    const cacheDuration = key === 'downloads' ? 2000 : this.CACHE_DURATION
+    if (!forceRefresh && now - lastFetch < cacheDuration) {
       console.log(`[ConnectionState] Using cached ${key} (${now - lastFetch}ms old)`)
       return this.data[key] as T
     }

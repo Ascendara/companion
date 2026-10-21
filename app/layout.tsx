@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Ascendara Webview",
-  description: "Discover games, explore your cloud library, and stay connected to your Ascendara desktop.",
+  description: "Discover games, browse your installed library, and stay connected to your Ascendara desktop.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -39,6 +39,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#fafafa" />
+        <link rel="preconnect" href="https://cdn2.steamgriddb.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn2.steamgriddb.com" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

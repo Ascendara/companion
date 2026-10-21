@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Circle, RefreshCw, Search, Users } from 'lucide-react'
-import { CompanionLayout, LoadState } from '@/components/companion-layout'
-import { MenuSelect } from '@/components/ui/menu-select'
+import { Search, Users } from 'lucide-react'
+import { CompanionLayout, EmptyState, LoadState, RefreshButton, SearchField, SegmentedTabs } from '@/components/companion-layout'
+import { FriendAvatar, statusLabel } from '@/components/friend-avatar'
 import { apiClient } from '@/lib/api'
 
 interface Friend {
@@ -13,17 +13,13 @@ interface Friend {
   status?: { status?: string; customMessage?: string }
 }
 
-function initials(name: string) {
-  return name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase()
-}
-
-function statusLabel(status = 'offline') {
-  return status === 'online' ? 'Online' : status === 'away' ? 'Away' : status === 'busy' ? 'Busy' : 'Offline'
-}
+type Filter = 'all' | 'online' | 'away' | 'busy' | 'offline'
+const ACTIVE = ['online', 'away', 'busy']
+const presence = (friend: Friend) => ACTIVE.includes(friend.status?.status || '') ? friend.status!.status! : 'offline'
 
 export default function FriendsPage() {
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState<Filter>('all')
   const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | undefined>(undefined)
@@ -50,20 +46,40 @@ export default function FriendsPage() {
 
   useEffect(() => { load() }, [load, attempt])
 
-  const visibleFriends = useMemo(() => friends.filter(friend => {
-    const status = friend.status?.status || 'offline'
-    return friend.displayName.toLowerCase().includes(query.toLowerCase()) && (filter === 'all' || status === filter)
-  }), [friends, query, filter])
-  const online = friends.filter(friend => ['online', 'away', 'busy'].includes(friend.status?.status || '')).length
+  const visibleFriends = useMemo(() => friends.filter(friend =>
+    friend.displayName.toLowerCase().includes(query.toLowerCase()) && (filter === 'all' || presence(friend) === filter)
+  ), [friends, query, filter])
+  const count = (status: string) => friends.filter(friend => presence(friend) === status).length
+  const online = friends.filter(friend => ACTIVE.includes(presence(friend))).length
   const retry = () => setAttempt(n => n + 1)
+  const groups = filter === 'all'
+    ? [{ title: 'Active now', items: visibleFriends.filter(friend => ACTIVE.includes(presence(friend))) }, { title: 'Offline', items: visibleFriends.filter(friend => !ACTIVE.includes(presence(friend))) }]
+    : [{ title: statusLabel(filter), items: visibleFriends }]
 
-  return <CompanionLayout title="Your people, in sync." eyebrow="FRIENDS" action={<button className="quiet-link" onClick={retry}><RefreshCw size={16} />Refresh</button>}>
-    <p className="page-intro">See who is around and what your friends are up to in Ascendara.</p>
-    <div className="stat-grid friend-stats"><div><Users /><span>Total friends</span><strong>{friends.length}</strong></div><div><Circle /><span>Online now</span><strong>{online}</strong></div><div><span>Offline</span><strong>{Math.max(0, friends.length - online)}</strong></div></div>
-    <div className="section-heading"><h2>Friends list</h2><span>{online ? `${online} active now` : 'No one is active right now'}</span></div>
-    <div className="catalog-controls"><label className="search-field"><Search size={18} /><input aria-label="Search friends" placeholder="Search friends…" value={query} onChange={event => setQuery(event.target.value)} /></label><MenuSelect label="Filter friends" value={filter} onChange={setFilter} options={[{ value: 'all', label: 'Everyone' }, { value: 'online', label: 'Online' }, { value: 'away', label: 'Away' }, { value: 'busy', label: 'Busy' }, { value: 'offline', label: 'Offline' }]} /></div>
-    <LoadState loading={loading} error={error} disconnected={disconnected} retry={retry} />
-    {!loading && !error && !visibleFriends.length && <section className="empty-state"><Users size={32} /><h2>{friends.length ? 'No matching friends' : 'Your friend list is quiet'}</h2><p>{friends.length ? 'Try a different name or status filter.' : 'Add friends in Ascendara to see their presence here.'}</p></section>}
-    {!loading && !error && visibleFriends.length > 0 && <div className="friends-grid">{visibleFriends.map(friend => { const status = friend.status?.status || 'offline'; return <article className="friend-card" key={friend.uid}><div className={`friend-avatar status-${status}`}>{friend.photoURL ? <img src={friend.photoURL} alt="" onError={event => { event.currentTarget.style.display = 'none' }} /> : initials(friend.displayName)}</div><div className="friend-copy"><div className="friend-name-row"><h3>{friend.displayName}</h3><span className={`status-dot status-${status}`} aria-label={statusLabel(status)} /></div><p className="friend-status">{statusLabel(status)}{friend.status?.customMessage && status !== 'offline' ? <><span>·</span>{friend.status.customMessage}</> : null}</p></div></article> })}</div>}
+  return <CompanionLayout title="Your people" eyebrow="Friends"
+    subtitle={loading || error ? 'See who’s around and what your friends are up to.' : online ? `${online} of ${friends.length} friends active right now.` : 'No one is active right now.'}
+    actions={<RefreshButton label="Refresh friends" busy={loading} onClick={retry} />}>
+    <div className="toolbar"><SearchField label="Search friends" placeholder="Search friends…" value={query} onChange={setQuery} /></div>
+    <SegmentedTabs label="Filter friends" value={filter} onChange={setFilter} options={[
+      { value: 'all', label: 'Everyone', count: friends.length },
+      { value: 'online', label: 'Online', count: count('online') },
+      { value: 'away', label: 'Away', count: count('away') },
+      { value: 'busy', label: 'Busy', count: count('busy') },
+      { value: 'offline', label: 'Offline', count: friends.length - online },
+    ]} />
+    <LoadState loading={loading} error={error} disconnected={disconnected} retry={retry} variant="list" />
+    {!loading && !error && !visibleFriends.length && <EmptyState icon={friends.length ? Search : Users} title={friends.length ? 'No matching friends' : 'Your friend list is quiet'}>{friends.length ? 'Try a different name or status filter.' : 'Add friends in Ascendara to see their presence here.'}</EmptyState>}
+    {!loading && !error && groups.filter(group => group.items.length).map(group => <section key={group.title} className="section">
+      <div className="section-head"><h2>{group.title}<span className="count-badge">{group.items.length}</span></h2></div>
+      <div className="friend-list">{group.items.map(friend => {
+        const status = presence(friend)
+        const message = friend.status?.customMessage && status !== 'offline' ? friend.status.customMessage : ''
+        return <article className={`friend-card ${status}`} key={friend.uid}>
+          <FriendAvatar name={friend.displayName} photoURL={friend.photoURL} status={status} />
+          <div className="friend-copy"><strong>{friend.displayName}</strong><span>{message || statusLabel(status)}</span></div>
+          {message && <span className={`presence-label ${status}`}>{statusLabel(status)}</span>}
+        </article>
+      })}</div>
+    </section>)}
   </CompanionLayout>
 }
