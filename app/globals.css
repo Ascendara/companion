@@ -1079,6 +1079,23 @@ article.game-card { cursor: default; }
    Responsive
    ========================================================================== */
 
+.now-playing { position: fixed; z-index: 45; bottom: 20px; left: max(260px, calc(50% - 200px)); right: 24px; max-width: 640px; margin: auto; border: 1px solid var(--hairline); border-radius: 20px; padding: 8px; background: color-mix(in srgb, var(--card) 96%, var(--companion-accent)); box-shadow: var(--shadow-lg); max-height: 35vh; overflow-y: auto; }
+.now-playing-row { display: flex; align-items: center; gap: 12px; padding: 4px; }
+.now-playing-art { width: 56px; height: 64px; flex-shrink: 0; overflow: hidden; border-radius: 10px; background: var(--accent-soft); display: grid; place-items: center; color: var(--companion-accent); }
+.now-playing-art img { width: 100%; height: 100%; object-fit: cover; }
+.now-playing-copy { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.now-playing-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.now-playing-label { display: flex; align-items: center; gap: 5px; color: var(--companion-accent); font-size: 10px; font-weight: 650; }
+.now-playing-label i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted-foreground); }
+.now-playing-label i.live { background: var(--companion-accent); box-shadow: 0 0 8px var(--companion-accent); }
+.now-playing-time { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+.now-playing-stop { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--companion-accent); cursor: pointer; }
+.now-playing-stop:disabled { opacity: .45; cursor: default; }
+.now-playing-stop:focus-visible { outline: 2px solid var(--companion-accent); outline-offset: 3px; }
+.now-playing-error { font-size: 12px; padding: 8px; color: var(--foreground); }
+body:has(.now-playing) .app-main { padding-bottom: 180px; }
+@media (max-width: 860px) { .now-playing { left: 12px; right: 12px; bottom: calc(88px + env(safe-area-inset-bottom)); max-width: none; } }
+
 @media (max-width: 1100px) {
   .split-layout, .detail-layout { grid-template-columns: minmax(0, 1fr); }
   .split-layout > aside, .cta-panel { position: static; }
