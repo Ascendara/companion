@@ -40,15 +40,15 @@ and `ASCENDARA_BUILD_TIMESTAMP` from the official Ascendara build.
 
 Deploy the updated monitor API alongside the webapp to enable
 `GET /companion/games` and `GET /companion/games/:id`. The monitor reads
-`https://api.ascendara.app/json/games`, caches it for five minutes, and serves
-6 results per page. Recently updated is the default sort; search, genre, sort,
+`https://api.ascendara.app/json/v2/games`, caches it for five minutes (revalidating
+with its ETag), and serves 24 results per page. Recently updated is the default sort; search, genre, sort,
 and page are kept in the browser URL so returning from details restores results.
 An upstream outage can use the last successful index for up to an hour, clearly
 labeled as stale. No local catalog file or new environment variables are needed.
 
 Game IDs are preserved when present, with stable title-based IDs for older
 entries that only have `imgID`. Images are resolved by game name using the
-existing `/companion/artwork` flow, in pairs of titles. Discover and the
+existing `/companion/artwork` flow, six titles per request. Discover and the
 desktop Library request covers as cards approach the viewport; the cloud
 collection resolves covers for its current page. Cached covers are reused.
 The monitor bounds each artwork batch to 12 seconds and returns unfinished

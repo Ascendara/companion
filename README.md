@@ -35,7 +35,7 @@ Game installation and launching happen in the Ascendara desktop app. The webview
 
 Both `/<six-digit-code>` and `/?code=<six-digit-code>` connection links are supported. The browser retains its monitor session between visits. Library data appears after cloud library sync in the desktop app; download activity depends on the desktop continuing to send updates.
 
-Downloads poll every **10 seconds**, configured in [lib/config.ts](./lib/config.ts). Catalog and artwork loading use separate requests and caches.
+Downloads poll every **3 seconds**, configured in [lib/config.ts](./lib/config.ts). Catalog and artwork loading use separate requests and caches.
 
 ## Run locally
 
@@ -91,13 +91,13 @@ Browser / installed webapp
       -> Ascendara SteamGrid proxy -> artwork URLs
 ```
 
-The frontend talks to the monitor API using the paired session. The monitor resolves the account owner and retrieves the data needed by each view. It reads the game index from `https://api.ascendara.app/json/games` and resolves artwork through Ascendara's SteamGrid proxy rather than the deprecated image endpoint.
+The frontend talks to the monitor API using the paired session. The monitor resolves the account owner and retrieves the data needed by each view. It reads the game index from `https://api.ascendara.app/json/v2/games` and resolves artwork through Ascendara's SteamGrid proxy rather than the deprecated image endpoint.
 
 ### Catalog and artwork loading
 
-- Discover and Library display **six games per page**. Discover keeps the search, genre, sort, and page in the URL so returning from details restores the results.
+- Discover shows **24 games per page** and the cloud collection **12**; the installed library is not paginated. Discover keeps the search, genre, sort, and page in the URL so returning from details restores the results.
 - The monitor caches the game index for **five minutes**. During an upstream outage it can return the last successful index for up to **one hour**, with the response marked stale.
-- Artwork is requested for visible games in batches of **two**. The client reuses cached results, shares duplicate requests, and skips queued work for pages that are no longer active.
+- Artwork is requested for visible games in batches of **six**. The client reuses cached results, shares duplicate requests, and skips queued work for pages that are no longer active.
 - The monitor allows one artwork batch at a time, bounds upstream work to a 12-second batch budget, and returns a retryable response when busy. The browser backs off instead of keeping server workers waiting.
 - Successful artwork lookups are cached server-side for one day, empty results for six hours, and failed lookups for one minute. Missing artwork falls back to a placeholder.
 
@@ -135,6 +135,7 @@ Artwork requests must satisfy the authentication policy of the upstream Ascendar
 | `ASCENDARA_BUILD_ID`, `ASCENDARA_BUILD_SIGNATURE`, `ASCENDARA_BUILD_VERSION`, `ASCENDARA_BUILD_TIMESTAMP` | Monitor server environment | Official build credentials when required by the upstream proxy. |
 | `STEAMGRIDDB_API_KEY` | Upstream Ascendara API server | SteamGridDB credential used by the proxy, not by the browser. |
 | `serviceAccountKey.json` | Monitor server filesystem | Firebase Admin service-account credential. |
+| `MONITOR_ADMIN_KEY` | Monitor server environment | Optional. Enables `POST /cleanup` for requests with a matching `X-Admin-Key` header; the endpoint is disabled without it. |
 
 Keep signing secrets, build credentials, SteamGridDB keys, and Firebase service-account data on the server. They must not be placed in `NEXT_PUBLIC_*` variables or committed to the repository.
 
