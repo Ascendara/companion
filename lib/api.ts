@@ -43,7 +43,7 @@ class ApiClient {
   private sessionId: string | null = null;
 
   setSessionId(sessionId: string) {
-    console.log('[API] Setting session ID:', sessionId)
+    console.log('[API] Setting session ID')
     this.sessionId = sessionId;
     if (typeof window !== 'undefined') {
       localStorage.setItem('ascendara_session_id', sessionId);
@@ -125,11 +125,11 @@ class ApiClient {
 
       this.getSessionId();
       if (this.sessionId) {
-        console.log('[API] Adding session ID to headers:', this.sessionId)
+        console.log('[API] Adding session ID to headers')
         headers['X-Session-ID'] = this.sessionId;
       }
 
-      console.log('[API] Request headers:', headers)
+      console.log('[API] Request headers:', { ...headers, 'X-Session-ID': headers['X-Session-ID'] ? '[redacted]' : undefined })
       console.log('[API] Request body:', options.body)
 
       const fetchUrl = `${API_BASE_URL}${endpoint}`
